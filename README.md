@@ -5,6 +5,8 @@ audio distortion and degradation. Pick a sound bite (or load your own audio
 file), enable one or more distortion types, vary their intensity with sliders,
 and flip the bypass switch to A/B against the clean original.
 
+**Live demo:** <https://nrbernier.github.io/distortion-ear-trainer/>
+
 ## Running
 
 AudioWorklets require the page to be served over HTTP (not opened as a
