@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>smoke</title></head>
+<body>
+<pre id="out">RUNNING</pre>
+<script src="samples.js"></script>
+<script>
+'use strict';
+const out = document.getElementById('out');
+const log = [];
+
+function rms(buf) {
+  let sum = 0, n = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) { sum += d[i] * d[i]; n++; }
+  }
+  return Math.sqrt(sum / n);
+}
+
+function finite(buf) {
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) if (!Number.isFinite(d[i])) return false;
+  }
+  return true;
+}
+
+async function processThrough(srcBuf, effects, bypass) {
+  const ctx = new OfflineAudioContext(2, srcBuf.length, srcBuf.sampleRate);
+  await ctx.audioWorklet.addModule('worklet.js');
+  const node = new AudioWorkletNode(ctx, 'distortion-chain', {
+    numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
+    channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers',
+    processorOptions: { effects, bypass: !!bypass },
+  });
+  const src = ctx.createBufferSource();
+  src.buffer = srcBuf;
+  src.connect(node).connect(ctx.destination);
+  src.start();
+  return ctx.startRendering();
+}
+
+(async () => {
+  try {
+    // 1. all built-in samples render, are finite and non-silent
+    for (const entry of SAMPLES) {
+      const buf = await makeSample(entry);
+      const r = rms(buf);
+      if (!finite(buf)) throw new Error(`sample ${entry.id}: non-finite output`);
+      if (r < 0.01) throw new Error(`sample ${entry.id}: near-silent (rms=${r})`);
+      log.push(`sample ${entry.id}: ok rms=${r.toFixed(3)}`);
+    }
+
+    const drums = await makeSample(SAMPLES[0]);
+
+    // 2. bypass passes audio through ~unchanged
+    const off = {};
+    for (const id of ['wow','srate','bits','codec','soft','hard','ring','trem','comb','lp','comp','drop','hiss','hum','crackle'])
+      off[id] = { on: false, amt: 0.5 };
+    const clean = await processThrough(drums, off, true);
+    if (!finite(clean)) throw new Error('bypass: non-finite');
+    const rClean = rms(clean);
+    if (rClean < 0.01) throw new Error(`bypass: silent (rms=${rClean})`);
+    log.push(`bypass: ok rms=${rClean.toFixed(3)}`);
+
+    // 3. each effect alone at amt=1: finite, non-silent, and (for most) different from clean
+    for (const id of Object.keys(off)) {
+      const fx = JSON.parse(JSON.stringify(off));
+      fx[id] = { on: true, amt: 1 };
+      const b = await processThrough(drums, fx, false);
+      if (!finite(b)) throw new Error(`effect ${id}: non-finite output`);
+      const r = rms(b);
+      if (id !== 'drop' && r < 0.005) throw new Error(`effect ${id}: near-silent (rms=${r})`);
+      // difference from clean
+      let diff = 0;
+      const d0 = clean.getChannelData(0), d1 = b.getChannelData(0);
+      for (let i = 0; i < d0.length; i++) diff += Math.abs(d0[i] - d1[i]);
+      diff /= d0.length;
+      log.push(`effect ${id}: rms=${r.toFixed(3)} meandiff=${diff.toFixed(5)}${diff < 1e-4 ? ' <-- NO EFFECT' : ''}`);
+    }
+
+    // 4. everything at once stays finite and bounded
+    const all = {};
+    for (const id of Object.keys(off)) all[id] = { on: true, amt: 0.8 };
+    const stacked = await processThrough(drums, all, false);
+    if (!finite(stacked)) throw new Error('stacked: non-finite output');
+    log.push(`stacked all effects: ok rms=${rms(stacked).toFixed(3)}`);
+
+    out.textContent = 'PASS\n' + log.join('\n');
+  } catch (err) {
+    out.textContent = 'FAIL: ' + (err.stack || err) + '\n' + log.join('\n');
+  }
+})();
+</script>
+</body>
+</html>

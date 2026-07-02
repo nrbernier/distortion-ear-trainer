@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Distortion Ear Trainer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Distortion Ear Trainer</h1>
+    <p>Pick a sound, stack distortions, and A/B against the clean original to train your ears.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2><span class="step">1</span> Sound source</h2>
+      <div id="sample-grid" class="grid"></div>
+      <label class="upload">
+        <input type="file" id="file-input" accept="audio/*">
+        <span>📂 Load your own audio file…</span>
+        <span id="file-name" class="file-name"></span>
+      </label>
+    </section>
+
+    <section id="transport">
+      <h2><span class="step">2</span> Listen</h2>
+      <div class="transport-row">
+        <button id="play">▶ Play</button>
+        <button id="bypass" title="Toggle between distorted and original (B)">
+          <span class="label">Bypass</span>
+          <span class="state">DISTORTED</span>
+        </button>
+        <label class="volume">
+          🔉 <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8">
+        </label>
+      </div>
+      <p class="hint">Shortcuts: <kbd>Space</kbd> play/stop · <kbd>B</kbd> bypass</p>
+    </section>
+
+    <section>
+      <h2><span class="step">3</span> Distortions</h2>
+      <p class="hint">Enable any combination; they are applied top-to-bottom in the
+        order shown. Click ⓘ for an explanation of each artifact.</p>
+      <div id="effect-grid" class="grid"></div>
+      <button id="reset" class="secondary">Reset all effects</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>Everything runs locally in your browser via the Web Audio API — nothing is uploaded.</p>
+  </footer>
+
+  <script src="samples.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
