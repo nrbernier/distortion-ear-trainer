@@ -123,8 +123,32 @@ class DistortionChain extends AudioWorkletProcessor {
         }
       } else if (d.type === 'bypass') {
         this.bypass = !!d.value;
+      } else if (d.type === 'reset') {
+        // Hard reset used by the ABX trainer: jump straight to the new
+        // parameters (no smoothing ramp) and clear all effect state, so every
+        // replay of A, B or X starts from an identical condition.
+        if (d.effects) {
+          for (const id of IDS) {
+            const p = d.effects[id];
+            this.target[id] = p && p.on ? p.amt : 0;
+            this.cur[id] = this.target[id];
+          }
+        }
+        this.resetState();
       }
     };
+  }
+
+  resetState() {
+    this.chan = [this.makeChannelState(), this.makeChannelState()];
+    this.wowP1 = 0; this.wowP2 = 0;
+    this.ringPhase = 0;
+    this.tremPhase = 0;
+    this.humPhase = 0;
+    this.dropGain = 1;
+    this.dropTarget = 1;
+    this.dropWait = this.expRand(sampleRate / (0.4 + this.target.drop * 6));
+    this.dropLen = 0;
   }
 
   makeChannelState() {
@@ -278,11 +302,12 @@ class DistortionChain extends AudioWorkletProcessor {
       this.humPhase += (TWO_PI * 50) / sampleRate;
 
       // dropout state machine
-      if (this.dropTarget === 1) {
+      if (this.dropLen <= 0) {
         if (e.drop > 0.001) {
           this.dropWait--;
           if (this.dropWait <= 0) {
-            this.dropTarget = 0;
+            // gentle settings only dip the level; from ~0.5 up it's full silence
+            this.dropTarget = 1 - Math.min(1, 0.2 + 1.6 * e.drop);
             this.dropLen = sampleRate * (0.02 + Math.random() * 0.1);
           }
         }
