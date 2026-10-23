@@ -33,6 +33,14 @@ Then open <http://localhost:8000> in a recent Chrome or Firefox.
   hiss, mains hum and crackle.
 - **Bypass switch** (keyboard: `B`) for instant A/B comparison;
   `Space` toggles playback.
+- **Training mode (ABX)** — each round, A and B are the same sound with two
+  different distortions and X is secretly one of them; say which. Every
+  distortion type has its own intensity, which starts strong and follows a
+  2-down/1-up staircase: two correct answers in a row make it subtler, a miss
+  makes it stronger again (converges on ~71% correct, i.e. your current
+  threshold). Progress is saved in the browser; you can choose which
+  distortions to train and use a fixed, random or your own sound.
+  Keys: `O`/`A`/`B`/`X` listen, `1`/`2` answer, `Enter` next round.
 
 All processing happens locally in an `AudioWorklet`
 ([worklet.js](worklet.js)); nothing is uploaded anywhere.
@@ -44,5 +52,6 @@ All processing happens locally in an `AudioWorklet`
 | `index.html` | Page structure |
 | `style.css` | Styling |
 | `app.js` | UI and audio engine (graph setup, playback, parameter routing) |
+| `training.js` | ABX training mode: round generation, adaptive staircase, progress |
 | `worklet.js` | All DSP: the ordered distortion chain in an AudioWorkletProcessor |
 | `samples.js` | Offline synthesis of the built-in sound bites |
