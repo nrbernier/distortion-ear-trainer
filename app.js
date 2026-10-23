@@ -97,6 +97,8 @@ const audio = {
 
 const buffers = new Map(); // sample id -> AudioBuffer
 let selectedSample = null;
+let userFile = null;        // { name, buffer } once the user loads a file
+let mode = 'explore';       // 'explore' | 'train'
 
 // ------------------------------------------------------------- audio
 
@@ -211,6 +213,7 @@ function buildSampleGrid() {
     makeSample(entry).then((buf) => {
       buffers.set(entry.id, buf);
       grid.querySelector(`[data-id="${entry.id}"]`).disabled = false;
+      if (typeof Trainer !== 'undefined') Trainer.onSampleReady();
     });
   }
 }
@@ -281,6 +284,27 @@ function resetEffects() {
   sendParams();
 }
 
+// ------------------------------------------------------------- modes
+
+function setMode(next) {
+  if (next === mode) return;
+  if (mode === 'explore') stop(); else Trainer.stop();
+  mode = next;
+  document.querySelectorAll('.mode-tab').forEach((t) => {
+    const on = t.dataset.mode === mode;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on);
+  });
+  document.getElementById('explore-panel').hidden = mode !== 'explore';
+  document.getElementById('train-panel').hidden = mode !== 'train';
+  if (mode === 'explore' && audio.node) {
+    audio.node.port.postMessage({ type: 'reset', effects: state });
+    sendBypass();
+  } else if (mode === 'train') {
+    Trainer.enter();
+  }
+}
+
 // ------------------------------------------------------------ wiring
 
 function init() {
@@ -305,6 +329,9 @@ function init() {
 
   document.getElementById('reset').addEventListener('click', resetEffects);
 
+  document.querySelectorAll('.mode-tab').forEach((t) =>
+    t.addEventListener('click', () => setMode(t.dataset.mode)));
+
   document.getElementById('file-input').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
@@ -316,6 +343,8 @@ function init() {
       audio.buffer = buf;
       document.querySelectorAll('.sample').forEach((b) => b.classList.remove('selected'));
       document.getElementById('file-name').textContent = file.name;
+      userFile = { name: file.name, buffer: buf };
+      if (typeof Trainer !== 'undefined') Trainer.onUserFile();
       startSource(buf);
       audio.playing = true;
       updateTransport();
@@ -326,6 +355,8 @@ function init() {
 
   document.addEventListener('keydown', (ev) => {
     if (ev.target.matches('input, textarea, select')) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (mode === 'train') { Trainer.onKey(ev); return; }
     if (ev.code === 'Space') {
       ev.preventDefault();
       if (audio.playing) stop(); else play();
