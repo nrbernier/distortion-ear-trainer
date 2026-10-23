@@ -10,9 +10,14 @@
   <header>
     <h1>Distortion Ear Trainer</h1>
     <p>Pick a sound, stack distortions, and A/B against the clean original to train your ears.</p>
+    <nav class="mode-tabs" role="tablist">
+      <button class="mode-tab active" data-mode="explore" role="tab" aria-selected="true">🎚️ Explore</button>
+      <button class="mode-tab" data-mode="train" role="tab" aria-selected="false">🎯 Training (ABX)</button>
+    </nav>
   </header>
 
   <main>
+    <div id="explore-panel">
     <section>
       <h2><span class="step">1</span> Sound source</h2>
       <div id="sample-grid" class="grid"></div>
@@ -45,6 +50,52 @@
       <div id="effect-grid" class="grid"></div>
       <button id="reset" class="secondary">Reset all effects</button>
     </section>
+    </div>
+
+    <div id="train-panel" hidden>
+      <section>
+        <p class="intro">Each round, <strong>A</strong> and <strong>B</strong> are the same sound with two
+          different distortions. <strong>X</strong> is one of them — which one? Every distortion starts
+          loud and obvious; get it right twice in a row and it gets subtler, miss and it gets
+          stronger again. Each distortion keeps its own level, so you train your weak spots.</p>
+
+        <div class="trial-meta">
+          <span id="t-round">Round 1</span>
+          <span id="t-sound"></span>
+          <span id="t-score"></span>
+        </div>
+
+        <div class="abx">
+          <button class="abx-btn" data-play="orig"><span class="key">O</span><span class="abx-title">Original</span><span class="abx-sub">clean reference</span></button>
+          <button class="abx-btn" data-play="A"><span class="key">A</span><span class="abx-title" id="t-name-A">—</span><span class="abx-sub" id="t-amt-A"></span></button>
+          <button class="abx-btn" data-play="B"><span class="key">B</span><span class="abx-title" id="t-name-B">—</span><span class="abx-sub" id="t-amt-B"></span></button>
+          <button class="abx-btn x" data-play="X"><span class="key">X</span><span class="abx-title" id="t-name-X">Which one?</span><span class="abx-sub" id="t-x-sub">mystery</span></button>
+        </div>
+        <p class="hint">Click (or press <kbd>O</kbd> <kbd>A</kbd> <kbd>B</kbd> <kbd>X</kbd>) to hear each from the start, as often as you like.
+          <kbd>Space</kbd> stops.</p>
+
+        <div class="answer-row">
+          <button class="answer" data-answer="A">X is <strong>A</strong> <kbd>1</kbd></button>
+          <button class="answer" data-answer="B">X is <strong>B</strong> <kbd>2</kbd></button>
+        </div>
+
+        <div id="t-feedback" class="feedback" hidden></div>
+        <button id="t-next" class="next" hidden>Next round ▸ <kbd>Enter</kbd></button>
+      </section>
+
+      <section>
+        <h2>Your progress</h2>
+        <p class="hint">Bar = intensity of the distortion right now (shorter is subtler, i.e. better).
+          Untick a distortion to leave it out of training.</p>
+        <div id="t-progress" class="progress"></div>
+        <div class="train-options">
+          <label>Sound
+            <select id="t-sound-select"></select>
+          </label>
+          <button id="t-reset" class="secondary">Reset progress</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer>
@@ -53,5 +104,6 @@
 
   <script src="samples.js"></script>
   <script src="app.js"></script>
+  <script src="training.js"></script>
 </body>
 </html>
